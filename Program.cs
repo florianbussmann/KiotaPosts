@@ -1,16 +1,18 @@
 ﻿using Hangfire;
 using KiotaPosts.Services;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHangfire(config => config.UseInMemoryStorage());
 builder.Services.AddHangfireServer();
 builder.Services.AddSingleton<PostsService>();
 
-var host = builder.Build();
-var serviceProvider = host.Services;
+var webApplication = builder.Build();
+webApplication.UseHangfireDashboard();
+
+var serviceProvider = webApplication.Services;
 
 var backgroundJobClient = serviceProvider.GetRequiredService<IBackgroundJobClient>();
 var recurringJobManager = serviceProvider.GetRequiredService<IRecurringJobManager>();
@@ -23,4 +25,4 @@ recurringJobManager.AddOrUpdate(
     () => postsService.GetPostsCount(),
     Cron.Minutely);
 
-await host.RunAsync();
+await webApplication.RunAsync();
