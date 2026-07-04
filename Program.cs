@@ -1,53 +1,26 @@
-﻿using KiotaPosts.Client;
-using KiotaPosts.Client.Models;
-using Microsoft.Kiota.Abstractions.Authentication;
-using Microsoft.Kiota.Http.HttpClientLibrary;
+﻿using Hangfire;
+using KiotaPosts.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-// API requires no authentication, so use the anonymous
-// authentication provider
-var authProvider = new AnonymousAuthenticationProvider();
-// Create request adapter using the HttpClient-based implementation
-var adapter = new HttpClientRequestAdapter(authProvider);
-// Create the API client
-var client = new PostsClient(adapter);
+var builder = Host.CreateApplicationBuilder(args);
 
-try
-{
-    // GET /posts
-    var allPosts = await client.Posts.GetAsync();
-    Console.WriteLine($"Retrieved {allPosts?.Count} posts.");
+builder.Services.AddHangfire(config => config.UseInMemoryStorage());
+builder.Services.AddHangfireServer();
+builder.Services.AddSingleton<PostsService>();
 
-    // GET /posts/{id}
-    var specificPostId = 5;
-    var specificPost = await client.Posts[specificPostId].GetAsync();
-    Console.WriteLine($"Retrieved post - ID: {specificPost?.Id}, Title: {specificPost?.Title}, Body: {specificPost?.Body}");
+var host = builder.Build();
+var serviceProvider = host.Services;
 
-    // POST /posts
-    var newPost = new Post
-    {
-        UserId = 42,
-        Title = "Testing Kiota-generated API client",
-        Body = "Hello world!"
-    };
+var backgroundJobClient = serviceProvider.GetRequiredService<IBackgroundJobClient>();
+var recurringJobManager = serviceProvider.GetRequiredService<IRecurringJobManager>();
+var postsService = serviceProvider.GetRequiredService<PostsService>();
 
-    var createdPost = await client.Posts.PostAsync(newPost);
-    Console.WriteLine($"Created new post with ID: {createdPost?.Id}");
+backgroundJobClient.Enqueue(() => postsService.Demo());
 
-    // PATCH /posts/{id}
-    var update = new Post
-    {
-        // Only update title
-        Title = "Updated title"
-    };
+recurringJobManager.AddOrUpdate(
+    "job",
+    () => postsService.GetPostsCount(),
+    Cron.Minutely);
 
-    var updatedPost = await client.Posts[specificPostId].PatchAsync(update);
-    Console.WriteLine($"Updated post - ID: {updatedPost?.Id}, Title: {updatedPost?.Title}, Body: {updatedPost?.Body}");
-
-    // DELETE /posts/{id}
-    await client.Posts[specificPostId].DeleteAsync();
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"ERROR: {ex.Message}");
-    Console.WriteLine(ex.StackTrace);
-}
+await host.RunAsync();

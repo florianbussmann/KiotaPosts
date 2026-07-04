@@ -33,22 +33,22 @@ paths:
     get:
       description: Get posts
       parameters:
-      - name: userId
-        in: query
-        description: Filter results by user ID
-        required: false
-        style: form
-        schema:
-          type: integer
-          maxItems: 1
-      - name: title
-        in: query
-        description: Filter results by title
-        required: false
-        style: form
-        schema:
-          type: string
-          maxItems: 1
+        - name: userId
+          in: query
+          description: Filter results by user ID
+          required: false
+          style: form
+          schema:
+            type: integer
+            maxItems: 1
+        - name: title
+          in: query
+          description: Filter results by title
+          required: false
+          style: form
+          schema:
+            type: string
+            maxItems: 1
       responses:
         '200':
           description: OK
@@ -77,7 +77,7 @@ paths:
     get:
       description: 'Get post by ID'
       parameters:
-      - $ref: '#/components/parameters/post-id'
+        - $ref: '#/components/parameters/post-id'
       responses:
         '200':
           description: OK
@@ -94,7 +94,7 @@ paths:
             schema:
               $ref: '#/components/schemas/post'
       parameters:
-      - $ref: '#/components/parameters/post-id'
+        - $ref: '#/components/parameters/post-id'
       responses:
         '200':
           description: OK
@@ -105,7 +105,7 @@ paths:
     delete:
       description: 'Delete post'
       parameters:
-      - $ref: '#/components/parameters/post-id'
+        - $ref: '#/components/parameters/post-id'
       responses:
         '200':
           description: OK
